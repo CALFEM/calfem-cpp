@@ -5,6 +5,7 @@ find_dependency(Eigen3 CONFIG)
 
 set(CALFEM_WITH_MESH @CALFEM_WITH_MESH@)
 set(CALFEM_WITH_GMSH @CALFEM_WITH_GMSH@)
+set(CALFEM_WITH_QT @CALFEM_WITH_QT@)
 
 if(CALFEM_WITH_MESH)
     find_dependency(CDT CONFIG)
@@ -13,6 +14,10 @@ endif()
 if(CALFEM_WITH_GMSH)
     list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}")
     find_dependency(Gmsh)
+endif()
+
+if(CALFEM_WITH_QT)
+    find_dependency(Qt6 COMPONENTS Widgets)
 endif()
 
 include("${CMAKE_CURRENT_LIST_DIR}/calfemTargets.cmake")

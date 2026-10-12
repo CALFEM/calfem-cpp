@@ -1,6 +1,7 @@
 set(CALFEM_EXAMPLES
     truss3d
     frame2d
+    frame2d_vis
     vibration2d
     heat2d
     plane2d
@@ -17,6 +18,12 @@ foreach(example ${CALFEM_EXAMPLES})
     target_link_libraries(${example} PRIVATE calfem::calfem)
     set_target_properties(${example} PROPERTIES FOLDER examples)
 endforeach()
+
+# frame2d_vis shows its figures in Qt windows when the Qt backend is built
+if(CALFEM_WITH_QT)
+    target_link_libraries(frame2d_vis PRIVATE calfem::vis_qt)
+    target_compile_definitions(frame2d_vis PRIVATE CALFEM_EXAMPLE_QT)
+endif()
 
 # The Gmsh shared library must be next to the executables
 if(CALFEM_WITH_GMSH AND Gmsh_RUNTIME)

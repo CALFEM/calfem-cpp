@@ -36,7 +36,9 @@ All element and solver routines of calfem-python's `core.py` are available.
 
 ## Building
 
-The presets use Ninja and locate vcpkg through the `VCPKG_ROOT` environment variable.
+The presets use Ninja and locate vcpkg through the `VCPKG_ROOT` environment variable. All presets share the
+vcpkg packages in `vcpkg_installed/` (the Qt presets in `vcpkg_installed-qt/`, since vcpkg removes packages a
+preset does not request), so the dependencies are installed once for all build trees.
 
 ```bash
 cmake --preset release
@@ -46,6 +48,18 @@ ctest --preset release
 
 On Windows, run these from a Developer Command Prompt/PowerShell (or let VS Code's CMake Tools select the MSVC
 kit) so that Ninja finds the compiler.
+
+To get a Visual Studio solution instead, use the `vs` preset (Windows only, Visual Studio 2026). It generates a
+multi-config solution in `build-vs/calfem.slnx` that does not need a developer environment:
+
+```bash
+cmake --preset vs
+cmake --build --preset vs-release   # or vs-debug
+ctest --preset vs-release           # or vs-debug
+```
+
+Open `build-vs/calfem.slnx` in Visual Studio to build and debug from the IDE. To use another Visual Studio
+version, override the generator in a `CMakeUserPresets.json`, e.g. `"generator": "Visual Studio 17 2022"`.
 
 To use a different vcpkg installation than the one in `VCPKG_ROOT`, create a `CMakeUserPresets.json` (ignored by
 git):
@@ -70,6 +84,7 @@ git):
 | `CALFEM_INSTALL`        | `ON` / `OFF`                     | Generate install/export rules        |
 | `CALFEM_WITH_MESH`      | `ON` / `OFF`                     | Geometry and mesh generation (CDT)   |
 | `CALFEM_WITH_GMSH`      | `OFF`                            | Gmsh mesh backend (GPL, see below)   |
+| `CALFEM_WITH_QT`        | `OFF`                            | Qt windows for `calfem::vis` (LGPL)  |
 
 ## Headers
 
@@ -89,6 +104,8 @@ git):
 | `calfem/mesh.h`     | `create_mesh`, `MeshGenerator`, `Mesh`, `geo_string`, `apply_traction_linear_element`            |
 | `calfem/log.h`      | `setLogFunction`                                                                                 |
 | `calfem/utils.h`    | `print`, `spy`, `scalfact2`                                                                      |
+| `calfem/vis.h`      | `Figure`, `figure`, `eldraw2`, `eldisp2`, `dispbeam2`, `secforce2`, `scalgraph2`, `save_figure`, `show` |
+| `calfem/vis_qt.h`   | Qt backend: `figure_widget` (target `calfem::vis_qt`, with `CALFEM_WITH_QT`)                     |
 
 ## Examples
 
@@ -96,6 +113,8 @@ Examples live in [src/examples](src/examples) and are built to `bin/debug` or `b
 
 - `truss3d` - three-bar 3D truss: topology, assembly, sparse solve and normal forces.
 - `frame2d` - 2D portal frame with beam elements, distributed load, dense solve and section forces.
+- `frame2d_vis` - the same frame with plots of the deformed shape and the section force diagrams, shown in Qt
+  windows when built with `CALFEM_WITH_QT`, otherwise (or with `--svg`) written as SVG files.
 - `plane2d` - plane stress cantilever with 4-node elements: tip deflection versus beam theory, von Mises stress.
 - `plate2d` - simply supported plate (`platre`, `apply_bc_3d`) compared with Navier's solution.
 - `heat2d` - steady heat conduction in a plate with 4-node isoparametric elements, compared with the exact
@@ -104,6 +123,47 @@ Examples live in [src/examples](src/examples) and are built to `bin/debug` or `b
   compared with Kirsch/Heywood. `mesh2d mesh.svg 2` writes the mesh as SVG and uses triangles.
 - `vibration2d` - natural frequencies of a cantilever (`beam2de`, `eigen`) and its response to a load pulse
   (`gfunc`, `step2`).
+
+## Visualisation
+
+`calfem/vis.h` ports calfem-python's drawing functions (`calfem.vis_mpl`). They draw into figures, which are
+written to SVG without further dependencies, or shown in interactive windows with the Qt backend:
+
+```cpp
+#include <calfem/calfem.h>
+#include <calfem/vis_qt.h>              // optional: Qt windows (link calfem::vis_qt)
+
+vis::figure(1);
+vis::eldraw2(ex, ey, {1, 2, 1});        // undeformed mesh
+double sfac = vis::eldisp2(ex, ey, ed); // deformed mesh, returns the scale factor
+vis::scalgraph2(sfac, {1e-3, 0.5, 0.0});
+vis::title("Displacements");
+
+vis::figure(2);
+for (Eigen::Index i = 0; i < ex.rows(); i++)
+    vis::secforce2(ex.row(i), ey.row(i), es[i].col(2), {2, 1}, scale);
+
+vis::save_figure("moment.svg");         // .png/.jpg/.pdf need the Qt backend
+vis::show();                            // Qt windows; without Qt: SVG opened in the default viewer
+```
+
+The Qt windows pan with the mouse, zoom with the wheel, fit with Home or a double-click, toggle the grid with G
+and save the current view as SVG, PNG or PDF. `show()` blocks until the windows are closed (set
+`CALFEM_NO_BLOCK` to return immediately); `figure_widget(fig, parent)` embeds a figure in a Qt application.
+
+The Qt backend is built with `-DCALFEM_WITH_QT=ON` and the vcpkg feature `qt` (presets `vs-qt`, `debug-qt`,
+`release-qt`). vcpkg builds Qt from source the first time, which takes a while; the binary cache makes later
+configures fast. Qt is LGPL licensed and linked dynamically.
+
+If your user profile path contains a space (e.g. `C:\Users\First Last`), vcpkg's Qt build fails with
+`Feature "pkg_config": Forcing to "ON" breaks its condition`. Point `PKG_CONFIG` to vcpkg's `pkg-config.exe`
+through a path without spaces (e.g. its 8.3 short name) for the first configure:
+
+```powershell
+$env:PKG_CONFIG = "C:/Users/FIRSTL~1/AppData/Local/vcpkg/downloads/tools/msys2/<hash>/mingw64/bin/pkg-config.exe"
+$env:VCPKG_KEEP_ENV_VARS = "PKG_CONFIG"
+cmake --preset vs-qt
+```
 
 ## Geometry and mesh generation
 

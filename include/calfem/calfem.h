@@ -21,6 +21,7 @@
 #include <calfem/boundary.h>
 #include <calfem/solvers.h>
 #include <calfem/dynamics.h>
+#include <calfem/vis.h>
 
 #ifdef CALFEM_WITH_MESH
 #include <calfem/geometry.h>

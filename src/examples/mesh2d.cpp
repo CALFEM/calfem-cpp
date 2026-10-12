@@ -18,40 +18,11 @@
 #include <algorithm>
 #include <cstdlib>
 #include <cmath>
-#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <stdexcept>
 
 using namespace calfem;
-
-namespace {
-
-void writeSvg(const std::string &filename, const Mesh &m)
-{
-    double xmin = m.coords.col(0).minCoeff(), xmax = m.coords.col(0).maxCoeff();
-    double ymin = m.coords.col(1).minCoeff(), ymax = m.coords.col(1).maxCoeff();
-    double scale = 800.0 / (xmax - xmin);
-
-    std::ofstream svg(filename);
-    svg << "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"" << 820 << "\" height=\""
-        << (ymax - ymin) * scale + 20 << "\">\n";
-    svg << "<rect width=\"100%\" height=\"100%\" fill=\"white\"/>\n";
-
-    for (Eigen::Index e = 0; e < m.topo.rows(); e++)
-    {
-        svg << "<polygon points=\"";
-        for (Eigen::Index k = 0; k < m.topo.cols(); k++)
-        {
-            auto n = m.topo(e, k) - 1;
-            svg << 10 + (m.coords(n, 0) - xmin) * scale << "," << 10 + (ymax - m.coords(n, 1)) * scale << " ";
-        }
-        svg << "\" fill=\"#dde8f5\" stroke=\"#30507a\" stroke-width=\"0.6\"/>\n";
-    }
-    svg << "</svg>\n";
-}
-
-} // namespace
 
 int run(int argc, char *argv[])
 {
@@ -98,7 +69,12 @@ int run(int argc, char *argv[])
 
     if (argc > 1)
     {
-        writeSvg(argv[1], m);
+        auto [ex, ey, ez] = coord_extract(m.edof, m.coords, m.dofs);
+        vis::Figure fig;
+        vis::eldraw2(fig, ex, ey, {1, 2, 0});
+        vis::title(fig, "Plate with a hole");
+        fig.set_size(900.0, 500.0);
+        vis::save_figure(argv[1], fig);
         std::cout << "Mesh written to " << argv[1] << "\n";
     }
 

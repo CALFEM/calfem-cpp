@@ -19,6 +19,9 @@ option(CALFEM_WITH_MESH "Build geometry and mesh generation" ${PROJECT_IS_TOP_LE
 # programs linked with calfem built with this option must comply with the GPL when distributed.
 option(CALFEM_WITH_GMSH "Use the Gmsh library for mesh generation (GPL)" OFF)
 
+# Interactive figure windows for calfem::vis (target calfem::vis_qt, vcpkg feature "qt")
+option(CALFEM_WITH_QT "Build the Qt backend for calfem::vis (calfem::vis_qt)" OFF)
+
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 if(PROJECT_IS_TOP_LEVEL)
@@ -50,7 +53,16 @@ if(CALFEM_WITH_GMSH)
     message(STATUS "Gmsh: ${Gmsh_LIBRARY} (C API wrapper: ${Gmsh_HAS_CWRAP})")
 endif()
 
+if(CALFEM_WITH_QT)
+    find_package(Qt6 REQUIRED COMPONENTS Widgets)
+    message(STATUS "Qt: ${Qt6_VERSION}")
+endif()
+
 add_subdirectory(src/calfem)
+
+if(CALFEM_WITH_QT)
+    add_subdirectory(src/calfem_qt)
+endif()
 
 if(CALFEM_BUILD_EXAMPLES)
     add_subdirectory(src/examples)
@@ -65,7 +77,12 @@ if(CALFEM_INSTALL)
     include(GNUInstallDirs)
     include(CMakePackageConfigHelpers)
 
-    install(TARGETS calfem EXPORT calfemTargets
+    set(CALFEM_INSTALL_TARGETS calfem)
+    if(CALFEM_WITH_QT)
+        list(APPEND CALFEM_INSTALL_TARGETS calfem_vis_qt)
+    endif()
+
+    install(TARGETS ${CALFEM_INSTALL_TARGETS} EXPORT calfemTargets
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}

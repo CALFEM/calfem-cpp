@@ -13,7 +13,8 @@ target_link_libraries(calfem_tests PRIVATE calfem::calfem Catch2::Catch2WithMain
 # Results computed with calfem-python (see reference_data/generate_calfem_python.py)
 target_compile_definitions(calfem_tests PRIVATE
     CALFEM_PYTHON_REFERENCE="${CMAKE_CURRENT_SOURCE_DIR}/reference_data/calfem_python_reference.json"
-    CALFEM_PYTHON_MESH_REFERENCE="${CMAKE_CURRENT_SOURCE_DIR}/reference_data/calfem_python_mesh_reference.json")
+    CALFEM_PYTHON_MESH_REFERENCE="${CMAKE_CURRENT_SOURCE_DIR}/reference_data/calfem_python_mesh_reference.json"
+    CALFEM_PYTHON_VIS_REFERENCE="${CMAKE_CURRENT_SOURCE_DIR}/reference_data/calfem_python_vis_reference.json")
 
 include(Catch)
 catch_discover_tests(calfem_tests)
@@ -41,4 +42,12 @@ if(CALFEM_WITH_GMSH AND Gmsh_RUNTIME)
         add_custom_command(TARGET ${target} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_if_different ${Gmsh_RUNTIME} $<TARGET_FILE_DIR:${target}>)
     endforeach()
+endif()
+
+# Qt backend tests (separate executable, offscreen platform: no windows appear)
+if(CALFEM_WITH_QT)
+    add_executable(calfem_qt_tests qt/test_vis_qt.cpp)
+    target_include_directories(calfem_qt_tests PRIVATE ${PROJECT_SOURCE_DIR}/src/calfem_qt)
+    target_link_libraries(calfem_qt_tests PRIVATE calfem::vis_qt Catch2::Catch2WithMain)
+    catch_discover_tests(calfem_qt_tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()

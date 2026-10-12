@@ -13,13 +13,15 @@ cmake --preset debug && cmake --build --preset debug && ctest --preset debug
 Requires `VCPKG_ROOT` and, on Windows, an MSVC developer environment (Ninja generator). The vcpkg
 `builtin-baseline` matches ObjectiveFrame's so both resolve the same Eigen version; keep them (and the commit in
 `.github/workflows/ci.yml`) in sync. Build trees are `build-debug`/`build-release`; executables go to
-`bin/debug`/`bin/release`.
+`bin/debug`/`bin/release`. On Windows the `vs` preset generates a multi-config Visual Studio 2026 solution in
+`build-vs` (build/test presets `vs-debug`/`vs-release`), sharing the same `bin/<config>` output directories. vcpkg packages are shared by all build trees in
+`vcpkg_installed/` (Qt presets: `vcpkg_installed-qt/`, kept apart because vcpkg removes unrequested packages).
 
 ## Layout
 
 - `include/calfem/` public headers, `src/calfem/` sources (same structure), target `calfem::calfem` (static by
   default). `calfem.h` is an umbrella header including everything; modules are `types.h`, `log.h`, `utils.h`,
-  `material.h`, `dofs.h`, `assembly.h`, `boundary.h`, `solvers.h`, `dynamics.h` and `elements/*.h` (one header per element family, collected by
+  `material.h`, `dofs.h`, `assembly.h`, `boundary.h`, `solvers.h`, `dynamics.h`, `vis.h` and `elements/*.h` (one header per element family, collected by
   `elements.h`). New element families get `include/calfem/elements/<family>.h` + `src/calfem/elements/<family>.cpp`
   and an include in `elements.h`; future modules (materials, geometry, mesh) follow the same pattern.
 - `src/calfem/detail/` private headers (not installed), e.g. `detail/log.h` with `logMessage`/`logError`.
@@ -27,6 +29,14 @@ Requires `VCPKG_ROOT` and, on Windows, an MSVC developer environment (Ninja gene
   `builtin_mesher.cpp` (2D: transfinite + CDT), `geo_writer.cpp` (port of calfem-python's `_writeGeoFile`; keep it
   identical, it is compared with Python's output), `gmsh_mesher.cpp` (Gmsh API via `gmsh.h_cwrap`, only with
   `CALFEM_WITH_GMSH`), `mesh.cpp` (front end, dofs/bdofs). Gmsh is GPL: never make it a default dependency.
+- `src/calfem/vis/` visualisation (port of calfem-python's `vis_mpl`): `figure.cpp` (Figure, current-figure
+  management, layout, backend dispatch), `svg.cpp` (SVG writer), `draw2.cpp` (eldraw2, eldisp2, ...). Drawing
+  functions only add items to a `Figure`; renderers use `vis::layout()`. `src/calfem_qt/` is the optional Qt
+  backend (target `calfem::vis_qt`, `CALFEM_WITH_QT`, vcpkg feature `qt`): `painter.cpp` (QPainter renderer,
+  PNG/PDF), `figure_widget.cpp` (widget/window), `qt_backend.cpp` (`show`, installed by including
+  `vis_qt.h`). `vis_qt.h` only forward-declares `QWidget`, so it passes the header check without Qt. The core
+  library never depends on Qt. Reference drawings: `generate_calfem_python_vis.py` (needs matplotlib) and
+  `test_vis_reference.cpp`; Qt tests are in `tests/qt/` (offscreen platform).
 - Every public header must compile on its own (checked by the `calfem_header_check` target in `tests/`).
 - `src/calfem/detail/element_utils.h` shared element helpers (evaluation points, 2D transformations,
   axial/bending section results); `detail/gauss.h` Gauss rules (CALFEM constants and point order);

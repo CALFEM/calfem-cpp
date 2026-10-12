@@ -14,6 +14,25 @@
         "cdt"
       ]
     },
+    "qt": {
+      "description": "Interactive Qt figure windows (calfem::vis_qt)",
+      "dependencies": [
+        {
+          "name": "qtbase",
+          "default-features": false,
+          "features": [
+            "gui",
+            "widgets",
+            "png",
+            { "name": "fontconfig", "platform": "linux" },
+            { "name": "freetype", "platform": "linux" },
+            { "name": "xcb", "platform": "linux" },
+            { "name": "xcb-xlib", "platform": "linux" },
+            { "name": "xrender", "platform": "linux" }
+          ]
+        }
+      ]
+    },
     "tests": {
       "description": "Build the unit tests",
       "dependencies": [

@@ -40,3 +40,37 @@ jobs:
 
       - name: Test
         run: ctest --preset ${{ matrix.preset }}
+
+  # Qt backend (calfem::vis_qt) with a prebuilt Qt; building Qt with vcpkg takes too long for CI.
+  qt:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Ninja and Qt build dependencies
+        run: sudo apt-get update && sudo apt-get install -y ninja-build libgl1-mesa-dev libxkbcommon-dev
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.9.*"
+          cache: true
+
+      - name: Set up vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          # Keep in sync with builtin-baseline in vcpkg.json
+          vcpkgGitCommitId: a11dd074dac3fa168aa8efb992cbb0220a3dc481
+
+      - name: Configure
+        run: cmake --preset release -DCALFEM_WITH_QT=ON -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR"
+
+      - name: Build
+        run: cmake --build --preset release
+
+      - name: Test
+        run: ctest --preset release
+        env:
+          QT_QPA_PLATFORM: offscreen
