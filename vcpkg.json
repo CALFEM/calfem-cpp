@@ -1,0 +1,25 @@
+{
+  "name": "calfem",
+  "version": "0.1.0",
+  "description": "CALFEM finite element library for C++",
+  "license": "MIT",
+  "builtin-baseline": "a11dd074dac3fa168aa8efb992cbb0220a3dc481",
+  "dependencies": [
+    "eigen3"
+  ],
+  "features": {
+    "mesh": {
+      "description": "Geometry and built-in mesh generation",
+      "dependencies": [
+        "cdt"
+      ]
+    },
+    "tests": {
+      "description": "Build the unit tests",
+      "dependencies": [
+        "catch2",
+        "nlohmann-json"
+      ]
+    }
+  }
+}
