@@ -59,7 +59,6 @@ compile_commands.json
 
 # vcpkg
 vcpkg_installed/
-vcpkg_installed-qt/
 
 # debug information files
 *.dwo

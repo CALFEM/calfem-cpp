@@ -1,7 +1,6 @@
 set(CALFEM_EXAMPLES
     truss3d
     frame2d
-    frame2d_vis
     vibration2d
     heat2d
     plane2d
@@ -13,16 +12,26 @@ if(CALFEM_WITH_MESH)
     list(APPEND CALFEM_EXAMPLES mesh2d)
 endif()
 
+# Visualisation version (<example>_vis, using calfem::vis and example_vis.h) of every example
+set(CALFEM_VIS_EXAMPLES)
+foreach(example ${CALFEM_EXAMPLES})
+    list(APPEND CALFEM_VIS_EXAMPLES ${example}_vis)
+endforeach()
+list(APPEND CALFEM_EXAMPLES ${CALFEM_VIS_EXAMPLES})
+
 foreach(example ${CALFEM_EXAMPLES})
     add_executable(${example} ${example}.cpp)
     target_link_libraries(${example} PRIVATE calfem::calfem)
     set_target_properties(${example} PROPERTIES FOLDER examples)
 endforeach()
 
-# frame2d_vis shows its figures in Qt windows when the Qt backend is built
+# The visualisation examples show their figures in Qt windows when the Qt backend is built
 if(CALFEM_WITH_QT)
-    target_link_libraries(frame2d_vis PRIVATE calfem::vis_qt)
-    target_compile_definitions(frame2d_vis PRIVATE CALFEM_EXAMPLE_QT)
+    foreach(example ${CALFEM_VIS_EXAMPLES})
+        target_link_libraries(${example} PRIVATE calfem::vis_qt)
+        target_compile_definitions(${example} PRIVATE CALFEM_EXAMPLE_QT)
+        calfem_deploy_qt_plugins(${example})
+    endforeach()
 endif()
 
 # The Gmsh shared library must be next to the executables

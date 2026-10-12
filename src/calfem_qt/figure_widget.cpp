@@ -45,8 +45,8 @@ Figure &FigureWidget::figure()
 Layout FigureWidget::currentLayout() const
 {
     if (m_view)
-        return layout(m_figure, width(), height(), *m_view);
-    return layout(m_figure, width(), height());
+        return vis::layout(m_figure, width(), height(), *m_view);
+    return vis::layout(m_figure, width(), height());
 }
 
 void FigureWidget::fit()

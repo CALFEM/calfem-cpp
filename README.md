@@ -36,9 +36,10 @@ All element and solver routines of calfem-python's `core.py` are available.
 
 ## Building
 
-The presets use Ninja and locate vcpkg through the `VCPKG_ROOT` environment variable. All presets share the
-vcpkg packages in `vcpkg_installed/` (the Qt presets in `vcpkg_installed-qt/`, since vcpkg removes packages a
-preset does not request), so the dependencies are installed once for all build trees.
+The presets use Ninja and locate vcpkg through the `VCPKG_ROOT` environment variable. All presets share a
+single vcpkg tree, `vcpkg_installed/`, so the dependencies are installed once for all build trees. Since vcpkg
+removes packages a configuration does not request, every preset requests the same manifest features (including
+`qt`); the Qt presets differ only in enabling `CALFEM_WITH_QT`.
 
 ```bash
 cmake --preset release
@@ -113,8 +114,6 @@ Examples live in [src/examples](src/examples) and are built to `bin/debug` or `b
 
 - `truss3d` - three-bar 3D truss: topology, assembly, sparse solve and normal forces.
 - `frame2d` - 2D portal frame with beam elements, distributed load, dense solve and section forces.
-- `frame2d_vis` - the same frame with plots of the deformed shape and the section force diagrams, shown in Qt
-  windows when built with `CALFEM_WITH_QT`, otherwise (or with `--svg`) written as SVG files.
 - `plane2d` - plane stress cantilever with 4-node elements: tip deflection versus beam theory, von Mises stress.
 - `plate2d` - simply supported plate (`platre`, `apply_bc_3d`) compared with Navier's solution.
 - `heat2d` - steady heat conduction in a plate with 4-node isoparametric elements, compared with the exact
@@ -123,6 +122,19 @@ Examples live in [src/examples](src/examples) and are built to `bin/debug` or `b
   compared with Kirsch/Heywood. `mesh2d mesh.svg 2` writes the mesh as SVG and uses triangles.
 - `vibration2d` - natural frequencies of a cantilever (`beam2de`, `eigen`) and its response to a load pulse
   (`gfunc`, `step2`).
+
+Each example has a visualisation version `<example>_vis` that solves the same problem and plots the results
+with `calfem::vis`. The figures are shown in Qt windows when built with `CALFEM_WITH_QT`, otherwise (or with
+`--svg`) written as `<example>_<figure>.svg`:
+
+- `truss3d_vis` - undeformed and deformed truss in a 3D projection, supports, load and normal forces.
+- `frame2d_vis` - deformed frame and normal force, shear force and moment diagrams.
+- `plane2d_vis` - deformed mesh, and the centre line deflection versus beam theory.
+- `plate2d_vis` - deflected plate as a 3D wireframe, and the centre line deflection versus Navier's solution.
+- `heat2d_vis` - heat flux vectors at the element centres, and the temperature versus the exact solution.
+- `mesh2d_vis` - mesh, deformed mesh, and `sigma_xx` above the hole versus Kirsch's solution
+  (`mesh2d_vis 2` uses triangles).
+- `vibration2d_vis` - the first three bending modes, and the tip displacement history.
 
 ## Visualisation
 

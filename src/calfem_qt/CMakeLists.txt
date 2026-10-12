@@ -25,3 +25,27 @@ if(MSVC)
 else()
     target_compile_options(calfem_vis_qt PRIVATE -Wall -Wextra)
 endif()
+
+# calfem_deploy_qt_plugins(<target>)
+# Copies the Qt platform (and style) plugins next to an executable after it is built, so it finds them when run
+# from bin/<config> (Qt looks in <exe dir>/platforms). Only needed on Windows; elsewhere Qt finds its plugins
+# through its installation prefix.
+function(calfem_deploy_qt_plugins target)
+    if(NOT WIN32)
+        return()
+    endif()
+    set(plugins
+        platforms Qt6::QWindowsIntegrationPlugin
+        platforms Qt6::QMinimalIntegrationPlugin
+        styles Qt6::QModernWindowsStylePlugin)
+    while(plugins)
+        list(POP_FRONT plugins plugin_dir plugin_target)
+        if(TARGET ${plugin_target})
+            add_custom_command(TARGET ${target} POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${target}>/${plugin_dir}"
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:${plugin_target}>"
+                        "$<TARGET_FILE_DIR:${target}>/${plugin_dir}"
+                VERBATIM)
+        endif()
+    endwhile()
+endfunction()

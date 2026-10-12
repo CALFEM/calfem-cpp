@@ -11,15 +11,9 @@
 // SPDX-License-Identifier: MIT
 //
 
-#include <calfem/calfem.h>
-
-#ifdef CALFEM_EXAMPLE_QT
-#include <calfem/vis_qt.h>
-#endif
+#include "example_vis.h"
 
 #include <algorithm>
-#include <iostream>
-#include <string>
 #include <vector>
 
 using namespace calfem;
@@ -105,24 +99,5 @@ int main(int argc, char *argv[])
         vis::title(titles[q]);
     }
 
-    bool svg = argc > 1 && std::string(argv[1]) == "--svg";
-
-#ifdef CALFEM_EXAMPLE_QT
-    if (!svg)
-    {
-        vis::show();
-        return 0;
-    }
-#endif
-
-    const char *names[] = {"displacements", "normal_force", "shear_force", "moment"};
-    for (int n = 1; n <= 4; n++)
-    {
-        std::string filename = std::string("frame2d_") + names[n - 1] + ".svg";
-        vis::save_figure(filename, vis::figure(n));
-        std::cout << "Figure " << n << " written to " << filename << "\n";
-    }
-    (void)svg;
-
-    return 0;
+    return example::finish(argc, argv, "frame2d", {"displacements", "normal_force", "shear_force", "moment"});
 }

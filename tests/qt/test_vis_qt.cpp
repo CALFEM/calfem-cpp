@@ -1,5 +1,5 @@
 //
-// Tests of the Qt backend for calfem::vis (calfem::vis_qt). Run with QT_QPA_PLATFORM=offscreen
+// Tests of the Qt backend for calfem::vis (calfem::vis_qt). Run with QT_QPA_PLATFORM=minimal
 // (set by tests/CMakeLists.txt), so no windows appear.
 //
 
@@ -77,6 +77,7 @@ TEST_CASE("figure_widget draws the figure", "[vis][qt]")
 TEST_CASE("FigureWidget zooms and fits the view", "[vis][qt]")
 {
     vis::Figure fig = frameFigure();
+    vis::qt::ensureApplication(); // ctest runs each case in its own process
     vis::qt::FigureWidget widget(fig);
     widget.resize(400, 300);
 

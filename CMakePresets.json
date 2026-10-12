@@ -10,7 +10,7 @@
       "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
       "cacheVariables": {
         "VCPKG_INSTALLED_DIR": "${sourceDir}/vcpkg_installed",
-        "VCPKG_MANIFEST_FEATURES": "tests;mesh",
+        "VCPKG_MANIFEST_FEATURES": "tests;mesh;qt",
         "CALFEM_BUILD_TESTS": "ON"
       }
     },
@@ -39,8 +39,6 @@
       "name": "qt",
       "hidden": true,
       "cacheVariables": {
-        "VCPKG_INSTALLED_DIR": "${sourceDir}/vcpkg_installed-qt",
-        "VCPKG_MANIFEST_FEATURES": "tests;mesh;qt",
         "CALFEM_WITH_QT": "ON"
       }
     },

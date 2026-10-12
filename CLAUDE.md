@@ -14,8 +14,9 @@ Requires `VCPKG_ROOT` and, on Windows, an MSVC developer environment (Ninja gene
 `builtin-baseline` matches ObjectiveFrame's so both resolve the same Eigen version; keep them (and the commit in
 `.github/workflows/ci.yml`) in sync. Build trees are `build-debug`/`build-release`; executables go to
 `bin/debug`/`bin/release`. On Windows the `vs` preset generates a multi-config Visual Studio 2026 solution in
-`build-vs` (build/test presets `vs-debug`/`vs-release`), sharing the same `bin/<config>` output directories. vcpkg packages are shared by all build trees in
-`vcpkg_installed/` (Qt presets: `vcpkg_installed-qt/`, kept apart because vcpkg removes unrequested packages).
+`build-vs` (build/test presets `vs-debug`/`vs-release`), sharing the same `bin/<config>` output directories. vcpkg packages are shared by all build trees in a
+single `vcpkg_installed/`; all presets request the same `VCPKG_MANIFEST_FEATURES` (vcpkg removes unrequested
+packages), and the Qt presets only add `CALFEM_WITH_QT=ON`. Keep the feature lists identical.
 
 ## Layout
 
@@ -36,7 +37,7 @@ Requires `VCPKG_ROOT` and, on Windows, an MSVC developer environment (Ninja gene
   PNG/PDF), `figure_widget.cpp` (widget/window), `qt_backend.cpp` (`show`, installed by including
   `vis_qt.h`). `vis_qt.h` only forward-declares `QWidget`, so it passes the header check without Qt. The core
   library never depends on Qt. Reference drawings: `generate_calfem_python_vis.py` (needs matplotlib) and
-  `test_vis_reference.cpp`; Qt tests are in `tests/qt/` (offscreen platform).
+  `test_vis_reference.cpp`; Qt tests are in `tests/qt/` (`minimal` platform; vcpkg has no `offscreen` plugin on Windows; `calfem_deploy_qt_plugins()` copies the plugins next to executables).
 - Every public header must compile on its own (checked by the `calfem_header_check` target in `tests/`).
 - `src/calfem/detail/element_utils.h` shared element helpers (evaluation points, 2D transformations,
   axial/bending section results); `detail/gauss.h` Gauss rules (CALFEM constants and point order);
@@ -50,7 +51,9 @@ Requires `VCPKG_ROOT` and, on Windows, an MSVC developer environment (Ninja gene
 - `tests/` Catch2 tests, one `test_*.cpp` per area, picked up by glob.
 - `tests/reference/` frozen copy of the calfem code ObjectiveFrame was built against (namespace `calfem_ref`).
   `test_objectiveframe_compat.cpp` checks signatures and compares results against it. Never edit the reference.
-- `src/examples/` example programs (listed in `src/examples/CMakeLists.txt`).
+- `src/examples/` example programs (listed in `src/examples/CMakeLists.txt`). Every example `<name>` has a
+  visualisation version `<name>_vis.cpp` (added automatically by the CMake list) using the shared helpers in
+  `example_vis.h` (graphs, arrows, 3D projection, `finish()`: Qt windows or `--svg`).
 - `cmake/calfemConfig.cmake.in` package config for `find_package(calfem)`.
 
 ## Constraints
