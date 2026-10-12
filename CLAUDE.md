@@ -31,13 +31,20 @@ packages), and the Qt presets only add `CALFEM_WITH_QT=ON`. Keep the feature lis
   identical, it is compared with Python's output), `gmsh_mesher.cpp` (Gmsh API via `gmsh.h_cwrap`, only with
   `CALFEM_WITH_GMSH`), `mesh.cpp` (front end, dofs/bdofs). Gmsh is GPL: never make it a default dependency.
 - `src/calfem/vis/` visualisation (port of calfem-python's `vis_mpl`): `figure.cpp` (Figure, current-figure
-  management, layout, backend dispatch), `svg.cpp` (SVG writer), `draw2.cpp` (eldraw2, eldisp2, ...). Drawing
-  functions only add items to a `Figure`; renderers use `vis::layout()`. `src/calfem_qt/` is the optional Qt
+  management, layout incl. colour bar, backend dispatch), `svg.cpp` (SVG writer), `draw2.cpp` (eldraw2,
+  eldisp2, ...), `draw_fields.cpp` (draw_mesh, draw_element_values, draw_nodal_values_contourf/contour/shaded,
+  eliso2, elval2, elflux2: contouring on triangles with matplotlib's MaxNLocator levels and colour
+  normalisation), `colormap.cpp` (matplotlib's viridis/jet/gray tables; colours must match matplotlib exactly).
+  `src/calfem/detail/vis_codes.h` holds the plotpar colour/line codes. Drawing functions only add items (Line,
+  Markers, Text, Polygon) to a `Figure` and set its colour scale; renderers use `vis::layout()` and must handle
+  every item type and the colour bar. `src/calfem_qt/` is the optional Qt
   backend (target `calfem::vis_qt`, `CALFEM_WITH_QT`, vcpkg feature `qt`): `painter.cpp` (QPainter renderer,
   PNG/PDF), `figure_widget.cpp` (widget/window), `qt_backend.cpp` (`show`, installed by including
   `vis_qt.h`). `vis_qt.h` only forward-declares `QWidget`, so it passes the header check without Qt. The core
   library never depends on Qt. Reference drawings: `generate_calfem_python_vis.py` (needs matplotlib) and
-  `test_vis_reference.cpp`; Qt tests are in `tests/qt/` (`minimal` platform; vcpkg has no `offscreen` plugin on Windows; `calfem_deploy_qt_plugins()` copies the plugins next to executables).
+  `test_vis_reference.cpp` (item by item); `generate_calfem_python_vis_fields.py` and
+  `test_vis_fields_reference.cpp` for the field functions (filled contours compared by level, colour and area
+  per level interval, contour lines by colour and length, since matplotlib merges regions); Qt tests are in `tests/qt/` (`minimal` platform; vcpkg has no `offscreen` plugin on Windows; `calfem_deploy_qt_plugins()` copies the plugins next to executables).
 - Every public header must compile on its own (checked by the `calfem_header_check` target in `tests/`).
 - `src/calfem/detail/element_utils.h` shared element helpers (evaluation points, 2D transformations,
   axial/bending section results); `detail/gauss.h` Gauss rules (CALFEM constants and point order);

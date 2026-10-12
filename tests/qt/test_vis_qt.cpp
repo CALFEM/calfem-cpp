@@ -74,6 +74,41 @@ TEST_CASE("figure_widget draws the figure", "[vis][qt]")
     CHECK(countPixels(image, 255, 255, 255) > image.width() * image.height() / 2);
 }
 
+TEST_CASE("Filled polygons and the colour bar are painted", "[vis][qt]")
+{
+    // Two elements with the first and last colour of viridis, and a colour bar
+    Matrix ex(2, 4), ey(2, 4);
+    ex << 0, 1, 1, 0, 1, 2, 2, 1;
+    ey << 0, 0, 1, 1, 0, 0, 1, 1;
+    vis::Figure fig;
+    vis::elval2(fig, ex, ey, ColVec::LinSpaced(2, 0.0, 1.0));
+
+    vis::qt::ensureApplication();
+    vis::qt::FigureWidget plain(fig);
+    plain.resize(500, 300);
+    QImage withoutBar = plain.grab().toImage();
+
+    vis::colorbar(fig);
+    vis::qt::FigureWidget widget(fig);
+    widget.resize(500, 300);
+    QImage image = widget.grab().toImage();
+
+    // viridis 0 = (68, 1, 84), viridis 1 = (253, 231, 37)
+    CHECK(countPixels(withoutBar, 68, 1, 84) > 2000);
+    CHECK(countPixels(withoutBar, 253, 231, 37) > 2000);
+
+    // The colour bar adds both end colours at the right of the plot
+    vis::Layout l = widget.currentLayout();
+    REQUIRE(l.colorbar);
+    int barPixels = 0;
+    for (int y = int(l.colorbarTop) + 2; y < int(l.colorbarTop + l.colorbarHeight) - 2; y++)
+    {
+        QColor c = image.pixelColor(int(l.colorbarLeft + 0.5 * l.colorbarWidth), y);
+        barPixels += c != QColor(Qt::white) ? 1 : 0;
+    }
+    CHECK(barPixels > int(l.colorbarHeight) - 10);
+}
+
 TEST_CASE("FigureWidget zooms and fits the view", "[vis][qt]")
 {
     vis::Figure fig = frameFigure();

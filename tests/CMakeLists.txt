@@ -14,7 +14,8 @@ target_link_libraries(calfem_tests PRIVATE calfem::calfem Catch2::Catch2WithMain
 target_compile_definitions(calfem_tests PRIVATE
     CALFEM_PYTHON_REFERENCE="${CMAKE_CURRENT_SOURCE_DIR}/reference_data/calfem_python_reference.json"
     CALFEM_PYTHON_MESH_REFERENCE="${CMAKE_CURRENT_SOURCE_DIR}/reference_data/calfem_python_mesh_reference.json"
-    CALFEM_PYTHON_VIS_REFERENCE="${CMAKE_CURRENT_SOURCE_DIR}/reference_data/calfem_python_vis_reference.json")
+    CALFEM_PYTHON_VIS_REFERENCE="${CMAKE_CURRENT_SOURCE_DIR}/reference_data/calfem_python_vis_reference.json"
+    CALFEM_PYTHON_VIS_FIELDS_REFERENCE="${CMAKE_CURRENT_SOURCE_DIR}/reference_data/calfem_python_vis_fields_reference.json")
 
 include(Catch)
 catch_discover_tests(calfem_tests)

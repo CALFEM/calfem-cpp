@@ -88,8 +88,12 @@ public:
                 writeMarkers(*markers);
             else if (auto text = std::get_if<Text>(&item))
                 writeText(*text);
+            else if (auto polygon = std::get_if<Polygon>(&item))
+                writePolygon(*polygon);
         }
         m_out << "</g>\n";
+
+        writeColorbar();
 
         if (!m_fig.title().empty())
             m_out << "<text x=\"" << l.plotLeft + 0.5 * l.plotWidth << "\" y=\"" << 0.5 * l.plotTop + 6.0
@@ -157,6 +161,70 @@ private:
         m_out << "\" stroke=\"" << svgColor(line.color) << "\" stroke-width=\"" << line.width << "\"";
         writeDashArray(line.style, line.width);
         m_out << "/>\n";
+    }
+
+    void writePolygon(const Polygon &polygon)
+    {
+        if (polygon.points.size() < 3)
+            return;
+        m_out << "<polygon points=\"";
+        writePoints(polygon.points);
+        m_out << "\" fill=\"" << svgColor(polygon.fill) << "\"";
+        if (polygon.edge)
+        {
+            m_out << " stroke=\"" << svgColor(*polygon.edge) << "\" stroke-width=\"" << polygon.width << "\"";
+            writeDashArray(polygon.style, polygon.width);
+        }
+        else
+            m_out << " stroke=\"none\"";
+        m_out << "/>\n";
+    }
+
+    void writeColorbar()
+    {
+        const auto &l = m_layout;
+        if (!l.colorbar || !m_fig.colorbar())
+            return;
+        const ColorScale &scale = *m_fig.colorbar();
+
+        // Bands: the contour level intervals, or thin strips of a continuous scale
+        auto band = [&](double lo, double hi, double value) {
+            double top = l.cy(hi), bottom = l.cy(lo);
+            m_out << "<rect x=\"" << l.colorbarLeft << "\" y=\"" << top << "\" width=\"" << l.colorbarWidth
+                  << "\" height=\"" << bottom - top << "\" fill=\"" << svgColor(scale.color(value)) << "\" stroke=\""
+                  << svgColor(scale.color(value)) << "\" stroke-width=\"0.5\"/>\n";
+        };
+        m_out << "<g>\n";
+        if (scale.boundaries.size() >= 2)
+        {
+            const auto &b = scale.boundaries;
+            for (std::size_t i = 0; i + 1 < b.size(); i++)
+                band(b[i], b[i + 1], 0.5 * (b[i] + b[i + 1]));
+        }
+        else
+        {
+            const int n = 128;
+            for (int i = 0; i < n; i++)
+            {
+                double lo = l.colorbarMin + (l.colorbarMax - l.colorbarMin) * i / n;
+                double hi = l.colorbarMin + (l.colorbarMax - l.colorbarMin) * (i + 1) / n;
+                band(lo, hi, 0.5 * (lo + hi));
+            }
+        }
+        m_out << "</g>\n";
+
+        double right = l.colorbarLeft + l.colorbarWidth;
+        m_out << "<rect x=\"" << l.colorbarLeft << "\" y=\"" << l.colorbarTop << "\" width=\"" << l.colorbarWidth
+              << "\" height=\"" << l.colorbarHeight << "\" fill=\"none\" stroke=\"black\" stroke-width=\"0.8\"/>\n";
+        m_out << "<g stroke=\"black\" stroke-width=\"0.8\">\n";
+        for (double t : l.colorbarTicks)
+            m_out << "<line x1=\"" << right << "\" y1=\"" << l.cy(t) << "\" x2=\"" << right + 4.0 << "\" y2=\""
+                  << l.cy(t) << "\"/>\n";
+        m_out << "</g>\n<g font-size=\"10\" fill=\"black\">\n";
+        for (double t : l.colorbarTicks)
+            m_out << "<text x=\"" << right + 7.0 << "\" y=\"" << l.cy(t) + 3.5 << "\">"
+                  << format_tick(t, l.colorbarTickStep) << "</text>\n";
+        m_out << "</g>\n";
     }
 
     void writeDashArray(LineStyle style, double width)

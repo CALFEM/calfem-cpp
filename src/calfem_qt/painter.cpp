@@ -70,6 +70,28 @@ void paintLine(QPainter &p, const Line &line, const Layout &l)
         p.drawPolyline(poly);
 }
 
+void paintPolygon(QPainter &p, const Polygon &polygon, const Layout &l)
+{
+    if (polygon.points.size() < 3)
+        return;
+    QPolygonF poly;
+    for (const auto &pt : polygon.points)
+        poly << QPointF(l.px(pt.x), l.py(pt.y));
+
+    if (polygon.edge)
+    {
+        Line outline;
+        outline.color = *polygon.edge;
+        outline.width = polygon.width;
+        outline.style = polygon.style;
+        p.setPen(linePen(outline));
+    }
+    else
+        p.setPen(Qt::NoPen);
+    p.setBrush(toQColor(polygon.fill));
+    p.drawPolygon(poly);
+}
+
 void paintMarkers(QPainter &p, const Markers &markers, const Layout &l)
 {
     if (markers.marker == Marker::None)
@@ -177,6 +199,49 @@ void paintAxes(QPainter &p, const Layout &l, bool grid)
     }
 }
 
+void paintColorbar(QPainter &p, const Figure &fig, const Layout &l)
+{
+    if (!l.colorbar || !fig.colorbar())
+        return;
+    const ColorScale &scale = *fig.colorbar();
+
+    // Bands: the contour level intervals, or thin strips of a continuous scale
+    auto band = [&](double lo, double hi, double value) {
+        QColor c = toQColor(scale.color(value));
+        double top = l.cy(hi), bottom = l.cy(lo);
+        p.setPen(QPen(c, 0.5));
+        p.setBrush(c);
+        p.drawRect(QRectF(l.colorbarLeft, top, l.colorbarWidth, bottom - top));
+    };
+    if (scale.boundaries.size() >= 2)
+    {
+        const auto &b = scale.boundaries;
+        for (std::size_t i = 0; i + 1 < b.size(); i++)
+            band(b[i], b[i + 1], 0.5 * (b[i] + b[i + 1]));
+    }
+    else
+    {
+        const int n = 128;
+        for (int i = 0; i < n; i++)
+        {
+            double lo = l.colorbarMin + (l.colorbarMax - l.colorbarMin) * i / n;
+            double hi = l.colorbarMin + (l.colorbarMax - l.colorbarMin) * (i + 1) / n;
+            band(lo, hi, 0.5 * (lo + hi));
+        }
+    }
+
+    double right = l.colorbarLeft + l.colorbarWidth;
+    p.setPen(QPen(Qt::black, 0.8));
+    p.setBrush(Qt::NoBrush);
+    p.drawRect(QRectF(l.colorbarLeft, l.colorbarTop, l.colorbarWidth, l.colorbarHeight));
+    for (double t : l.colorbarTicks)
+    {
+        p.drawLine(QPointF(right, l.cy(t)), QPointF(right + 4.0, l.cy(t)));
+        paintText(p, QString::fromStdString(format_tick(t, l.colorbarTickStep)), right + 7.0, l.cy(t), 10.0,
+                  HAlign::Left, VAlign::Center);
+    }
+}
+
 } // namespace
 
 void paintFigure(QPainter &p, const Figure &fig, const Layout &l, double width, double height)
@@ -196,6 +261,8 @@ void paintFigure(QPainter &p, const Figure &fig, const Layout &l, double width, 
             paintLine(p, *line, l);
         else if (auto markers = std::get_if<Markers>(&item))
             paintMarkers(p, *markers, l);
+        else if (auto polygon = std::get_if<Polygon>(&item))
+            paintPolygon(p, *polygon, l);
         else if (auto text = std::get_if<Text>(&item))
         {
             p.setPen(toQColor(text->color));
@@ -204,6 +271,8 @@ void paintFigure(QPainter &p, const Figure &fig, const Layout &l, double width, 
         }
     }
     p.restore();
+
+    paintColorbar(p, fig, l);
 
     if (!fig.title().empty())
     {

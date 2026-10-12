@@ -2,8 +2,8 @@
 // CALFEM C++ example: plane stress cantilever with result plots
 //
 // The cantilever of plane2d (plani4e elements, clamped left edge, tip load) drawn with
-// calfem::vis: the undeformed and deformed mesh, and the deflection of the centre line
-// compared with beam theory including shear deformation.
+// calfem::vis: the undeformed and deformed mesh, the deflection of the centre line
+// compared with beam theory including shear deformation, and the effective stress.
 //
 // Built with Qt (CALFEM_WITH_QT) the figures are shown in windows; otherwise, or with the
 // argument --svg, they are written to plane2d_*.svg.
@@ -111,5 +111,23 @@ int main(int argc, char *argv[])
     plotMarkers(deflection, xn, wn, colorRed);
     vis::title(deflection, "Deflection [mm] along x [m]: FE (markers), beam theory (line)");
 
-    return finish(argc, argv, "plane2d", {"deformed", "deflection"});
+    // ---- Figure 3: effective stress at the element centres on the deformed mesh ----
+
+    RowVec ep1 = ep;
+    ep1(2) = 1; // one Gauss point: the element centre
+
+    ColVec eseff(topo.rows());
+    for (Eigen::Index e = 0; e < topo.rows(); e++)
+    {
+        auto [es, et] = plani4s(ex.row(e), ey.row(e), ep1, D, ed.row(e));
+        eseff(e) = effmises(es, ptype)(0) / 1e6;
+    }
+
+    vis::Figure &stress = vis::figure(3);
+    vis::draw_element_values(stress, eseff, coords, edof, 2, 3, a, false, true, 10.0,
+                             "Effective stress [MPa] (displacements x 10)");
+    vis::colorbar(stress);
+    vis::axis(stress, {-0.1, 2.1, -0.4, 0.2});
+
+    return finish(argc, argv, "plane2d", {"deformed", "deflection", "stress"});
 }

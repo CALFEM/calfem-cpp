@@ -2,8 +2,8 @@
 // CALFEM C++ example: steady-state heat conduction with result plots
 //
 // The plate of heat2d (uniform heat generation, 0 C on the left edge and 100 C on the right
-// edge) drawn with calfem::vis: the mesh with the heat flux at the element centres (flw2i4s),
-// and the temperature along the plate compared with the exact solution.
+// edge) drawn with calfem::vis: temperature contours with the heat flux at the element centres
+// (flw2i4s), and the temperature along the plate compared with the exact solution.
 //
 // Built with Qt (CALFEM_WITH_QT) the figures are shown in windows; otherwise, or with the
 // argument --svg, they are written to heat2d_*.svg.
@@ -74,31 +74,26 @@ int main(int argc, char *argv[])
     auto [a, r] = spsolveq(K, f, bcDofs, bcVals);
     Matrix ed = extract_eldisp(edof, a);
 
-    // ---- Figure 1: mesh and heat flux at the element centres ----
+    // ---- Figure 1: temperature contours and heat flux at the element centres ----
 
     RowVec ep1 = ep;
     ep1(1) = 1; // one Gauss point: the element centre
 
-    Matrix q(topo.rows(), 2), qc(topo.rows(), 2);
+    Matrix q(topo.rows(), 2);
     for (Eigen::Index e = 0; e < topo.rows(); e++)
     {
         auto [es, et, eci] = flw2i4s(ex.row(e), ey.row(e), ep1, D, ed.row(e));
         q.row(e) = es.row(0);
-        qc.row(e) = eci.row(0);
     }
 
     vis::Figure &flux = vis::figure(1);
-    vis::eldraw2(flux, ex, ey, {1, 1, 0});
-
+    vis::draw_nodal_values_contourf(flux, a, coords, edof, 12, "Temperature [C] and heat flux", 1, 3, true);
+    vis::colorbar(flux);
     double qmax = q.rowwise().norm().maxCoeff();
-    double scale = 0.09 / qmax; // longest arrow 0.09 m (element width 0.1 m)
-    for (Eigen::Index e = 0; e < topo.rows(); e++)
-        arrow(flux, qc(e, 0) - 0.5 * scale * q(e, 0), qc(e, 1) - 0.5 * scale * q(e, 1), scale * q(e, 0),
-              scale * q(e, 1), colorRed);
+    vis::draw_element_flux(flux, q, coords, edof, 1, 3, 0.09 / qmax, colorRed); // longest arrow 0.09 m
 
     vis::text(flux, "T = 0 C", {0.02, -0.12}, colorBlue);
     vis::text(flux, "T = 100 C", {Lx - 0.35, -0.12}, colorBlue);
-    vis::title(flux, "Heat flux at the element centres");
 
     // ---- Figure 2: temperature along y = 0, FE (markers) and exact (line) ----
 

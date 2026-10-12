@@ -129,11 +129,14 @@ with `calfem::vis`. The figures are shown in Qt windows when built with `CALFEM_
 
 - `truss3d_vis` - undeformed and deformed truss in a 3D projection, supports, load and normal forces.
 - `frame2d_vis` - deformed frame and normal force, shear force and moment diagrams.
-- `plane2d_vis` - deformed mesh, and the centre line deflection versus beam theory.
-- `plate2d_vis` - deflected plate as a 3D wireframe, and the centre line deflection versus Navier's solution.
-- `heat2d_vis` - heat flux vectors at the element centres, and the temperature versus the exact solution.
-- `mesh2d_vis` - mesh, deformed mesh, and `sigma_xx` above the hole versus Kirsch's solution
-  (`mesh2d_vis 2` uses triangles).
+- `plane2d_vis` - deformed mesh, the centre line deflection versus beam theory, and the effective stress
+  (`draw_element_values`).
+- `plate2d_vis` - deflected plate as a 3D wireframe, the centre line deflection versus Navier's solution, and
+  deflection contours (`draw_nodal_values_contourf`/`_contour`).
+- `heat2d_vis` - temperature contours with heat flux arrows (`draw_element_flux`), and the temperature versus
+  the exact solution.
+- `mesh2d_vis` - mesh, deformed mesh, `sigma_xx` above the hole versus Kirsch's solution, and `sigma_xx`
+  contours (`mesh2d_vis 2` uses triangles).
 - `vibration2d_vis` - the first three bending modes, and the tip displacement history.
 
 ## Visualisation
@@ -158,6 +161,25 @@ for (Eigen::Index i = 0; i < ex.rows(); i++)
 vis::save_figure("moment.svg");         // .png/.jpg/.pdf need the Qt backend
 vis::show();                            // Qt windows; without Qt: SVG opened in the default viewer
 ```
+
+Mesh and field drawings follow calfem-python's `draw_*` functions and use matplotlib's colour maps (viridis by
+default, `vis::colormap()` selects jet or gray) and contour levels:
+
+```cpp
+vis::figure(3);
+vis::draw_nodal_values_contourf(a, coords, edof, 12, "Temperature", 1, 3, true); // filled contours + mesh
+vis::colorbar();
+vis::draw_element_flux(q, coords, edof, 1, 3);                                    // flux arrows
+
+vis::figure(4);
+vis::draw_element_values(eseff, coords, edof, 2, 3, a, false, true, 10.0);        // on the displaced mesh
+vis::colorbar();
+```
+
+Also available: `draw_mesh`, `draw_elements`, `draw_node_circles`, `draw_displacements`,
+`draw_nodal_values_contour`, `draw_nodal_values_shaded`, `draw_nodal_values` and the element-coordinate forms
+`eliso2`, `elval2` and `elflux2`. Deviations from calfem-python (e.g. Gouraud shading approximated by 64
+contour intervals) are listed in `vis.h`.
 
 The Qt windows pan with the mouse, zoom with the wheel, fit with Home or a double-click, toggle the grid with G
 and save the current view as SVG, PNG or PDF. `show()` blocks until the windows are closed (set

@@ -2,8 +2,9 @@
 // CALFEM C++ example: plate with a hole with result plots
 //
 // The plate of mesh2d (meshed from a Geometry, pulled at the right edge) drawn with
-// calfem::vis: the mesh, the deformed mesh, and sigma_xx above the hole compared with
-// Kirsch's solution for an infinite plate (the finite width raises the FE stresses somewhat).
+// calfem::vis: the mesh, the deformed mesh, sigma_xx above the hole compared with
+// Kirsch's solution for an infinite plate (the finite width raises the FE stresses somewhat)
+// and sigma_xx contours.
 //
 // Uses the built-in mesher, or Gmsh when calfem is built with CALFEM_WITH_GMSH.
 // Arguments (optional): --svg, element type (3 quadrilaterals, default, or 2 triangles).
@@ -153,7 +154,27 @@ int run(int argc, char *argv[])
     plotMarkers(stress, yf, sf, colorRed);
     vis::title(stress, "sigma_xx / sigma_0 above the hole vs distance [mm]: FE (markers), Kirsch (line)");
 
-    return finish(argc, argv, "mesh2d", {"mesh", "deformed", "stress"});
+    // ---- Figure 4: sigma_xx contours (element centre values averaged at the nodes) ----
+
+    ColVec nodal = ColVec::Zero(m.coords.rows()), count = ColVec::Zero(m.coords.rows());
+    for (Eigen::Index e = 0; e < m.edof.rows(); e++)
+    {
+        auto [es, et] = quads ? plani4s(ex.row(e), ey.row(e), ep1, D, ed.row(e))
+                              : plants(ex.row(e), ey.row(e), ept, D, ed.row(e));
+        for (Eigen::Index k = 0; k < m.edof.cols(); k += 2)
+        {
+            int node = (m.edof(e, k) - 1) / 2;
+            nodal(node) += es(0, 0) / sigma0;
+            count(node) += 1.0;
+        }
+    }
+    nodal = nodal.cwiseQuotient(count.cwiseMax(1.0));
+
+    vis::Figure &contours = vis::figure(4);
+    vis::draw_nodal_values_contourf(contours, nodal, m.coords, m.edof, 12, "sigma_xx / sigma_0", 2, mesher.el_type);
+    vis::colorbar(contours);
+
+    return finish(argc, argv, "mesh2d", {"mesh", "deformed", "stress", "contours"});
 }
 
 int main(int argc, char *argv[])

@@ -88,6 +88,8 @@ void Figure::clear()
     m_items.clear();
     m_title.clear();
     m_axis.reset();
+    m_colorScale.reset();
+    m_colorbar.reset();
 }
 
 Bounds Figure::data_bounds() const
@@ -103,6 +105,9 @@ Bounds Figure::data_bounds() const
                 b.include(p);
         else if (auto text = std::get_if<Text>(&item))
             b.include(text->position);
+        else if (auto polygon = std::get_if<Polygon>(&item))
+            for (const auto &p : polygon->points)
+                b.include(p);
     }
     return b;
 }
@@ -158,6 +163,36 @@ void Figure::set_size(double width, double height)
         throw std::invalid_argument("Figure::set_size: width and height must be positive.");
     m_width = width;
     m_height = height;
+}
+
+Colormap Figure::colormap() const
+{
+    return m_colormap;
+}
+
+void Figure::set_colormap(Colormap cmap)
+{
+    m_colormap = cmap;
+}
+
+const std::optional<ColorScale> &Figure::color_scale() const
+{
+    return m_colorScale;
+}
+
+void Figure::set_color_scale(const ColorScale &scale)
+{
+    m_colorScale = scale;
+}
+
+const std::optional<ColorScale> &Figure::colorbar() const
+{
+    return m_colorbar;
+}
+
+void Figure::set_colorbar(const std::optional<ColorScale> &scale)
+{
+    m_colorbar = scale;
 }
 
 // ---- Figure management ----
@@ -296,6 +331,28 @@ void axis(Figure &fig, const char *option)
         fig.clear_axis();
     else
         throw std::invalid_argument("axis: option must be \"equal\", \"auto\" or \"tight\", got \"" + o + "\".");
+}
+
+void colormap(Colormap cmap)
+{
+    gcf().set_colormap(cmap);
+}
+
+void colormap(Figure &fig, Colormap cmap)
+{
+    fig.set_colormap(cmap);
+}
+
+void colorbar()
+{
+    colorbar(gcf());
+}
+
+void colorbar(Figure &fig)
+{
+    if (!fig.color_scale())
+        throw std::runtime_error("colorbar: the figure has no colour-mapped drawing.");
+    fig.set_colorbar(fig.color_scale());
 }
 
 void show_grid(bool flag)
@@ -472,6 +529,9 @@ std::vector<double> ticks(double lo, double hi, double step)
 
 const double marginLeft = 64.0;
 const double marginRight = 20.0;
+const double colorbarSpace = 90.0; // colour bar: gap, bar and tick labels
+const double colorbarGap = 16.0;
+const double colorbarBarWidth = 16.0;
 const double marginTop = 36.0;
 const double marginBottom = 32.0;
 
@@ -485,6 +545,11 @@ double Layout::px(double x) const
 double Layout::py(double y) const
 {
     return plotTop + (view.ymax - y) / (view.ymax - view.ymin) * plotHeight;
+}
+
+double Layout::cy(double value) const
+{
+    return colorbarTop + (colorbarMax - value) / (colorbarMax - colorbarMin) * colorbarHeight;
 }
 
 double Layout::mx(double px) const
@@ -533,11 +598,63 @@ Layout layout(const Figure &fig, double width, double height)
 Layout layout(const Figure &fig, double width, double height, const Bounds &view)
 {
     Layout l;
+    l.colorbar = fig.colorbar().has_value();
     l.plotLeft = marginLeft;
     l.plotTop = marginTop;
-    l.plotWidth = std::max(10.0, width - marginLeft - marginRight);
+    l.plotWidth = std::max(10.0, width - marginLeft - marginRight - (l.colorbar ? colorbarSpace : 0.0));
     l.plotHeight = std::max(10.0, height - marginTop - marginBottom);
     l.view = view;
+
+    if (l.colorbar)
+    {
+        const ColorScale &scale = *fig.colorbar();
+        l.colorbarLeft = l.plotLeft + l.plotWidth + colorbarGap;
+        l.colorbarTop = l.plotTop;
+        l.colorbarWidth = colorbarBarWidth;
+        l.colorbarHeight = l.plotHeight;
+
+        if (scale.boundaries.size() >= 2)
+        {
+            // Filled contours: ticks at the levels (every k-th level when there are many)
+            l.colorbarMin = scale.boundaries.front();
+            l.colorbarMax = scale.boundaries.back();
+            std::size_t n = scale.boundaries.size();
+            std::size_t every = std::max<std::size_t>(1, (n + 11) / 12);
+            for (std::size_t i = 0; i < n; i += every)
+                l.colorbarTicks.push_back(scale.boundaries[i]);
+
+            // Label precision: the decimals the levels need (0.25 must not become 0.2), relative
+            // to the level range
+            double range = std::max(std::abs(l.colorbarMax - l.colorbarMin), 1e-300);
+            double step = std::pow(10.0, std::floor(std::log10(range)));
+            for (int k = 0; k < 12; k++)
+            {
+                bool exact = true;
+                for (double t : scale.boundaries)
+                    exact = exact && std::abs(t / step - std::round(t / step)) < 1e-6;
+                if (exact)
+                    break;
+                step /= 10.0;
+            }
+            l.colorbarTickStep = step;
+        }
+        else
+        {
+            l.colorbarMin = scale.vmin;
+            l.colorbarMax = scale.vmax;
+            l.colorbarTickStep = niceStep(l.colorbarMax - l.colorbarMin, l.colorbarHeight / 40.0);
+            l.colorbarTicks = ticks(l.colorbarMin, l.colorbarMax, l.colorbarTickStep);
+        }
+
+        // A constant field: show a unit range around the value
+        if (!(l.colorbarMax > l.colorbarMin))
+        {
+            l.colorbarMin -= 0.5;
+            l.colorbarMax += 0.5;
+            l.colorbarTickStep = niceStep(1.0, l.colorbarHeight / 40.0);
+            l.colorbarTicks = ticks(l.colorbarMin, l.colorbarMax, l.colorbarTickStep);
+        }
+    }
 
     if (fig.equal_aspect())
     {

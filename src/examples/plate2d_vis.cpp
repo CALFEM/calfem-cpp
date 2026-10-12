@@ -132,5 +132,17 @@ int main(int argc, char *argv[])
     plotMarkers(centre, xn, wn, colorRed);
     vis::title(centre, "Deflection [mm] along y = a/2: FE (markers), Navier (line)");
 
-    return finish(argc, argv, "plate2d", {"surface", "centre_line"});
+    // ---- Figure 3: deflection contours (filled, with contour lines) ----
+
+    ColVec wn_all(nnodes);
+    for (int nd = 0; nd < nnodes; nd++)
+        wn_all(nd) = w(dofs(nd, 0) - 1) * 1e3;
+
+    vis::Figure &contours = vis::figure(3);
+    vis::draw_nodal_values_contourf(contours, wn_all, coords, edof, 10, "Deflection [mm]", 3, 3);
+    vis::colorbar(contours);
+    vis::colormap(contours, vis::Colormap::Gray);
+    vis::draw_nodal_values_contour(contours, wn_all, coords, edof, 10, "", 3, 3);
+
+    return finish(argc, argv, "plate2d", {"surface", "centre_line", "contours"});
 }
