@@ -10,7 +10,7 @@ standalone library. Reference implementation for new routines: calfem-python
 cmake --preset debug && cmake --build --preset debug && ctest --preset debug
 ```
 
-Requires `VCPKG_ROOT` and, on Windows, an MSVC developer environment (Ninja generator). The vcpkg
+Requires vcpkg, located by `cmake/vcpkg_detect.cmake` (`VCPKG_ROOT`, `vcpkg` on `PATH`, or common locations) and, on Windows, an MSVC developer environment (Ninja generator). The vcpkg
 `builtin-baseline` matches ObjectiveFrame's so both resolve the same Eigen version; keep them (and the commit in
 `.github/workflows/ci.yml`) in sync. Build trees are `build-debug`/`build-release`; executables go to
 `bin/debug`/`bin/release`. On Windows the `vs` preset generates a multi-config Visual Studio 2026 solution in
@@ -44,7 +44,7 @@ packages), and the Qt presets only add `CALFEM_WITH_QT=ON`. Keep the feature lis
   library never depends on Qt. Reference drawings: `generate_calfem_python_vis.py` (needs matplotlib) and
   `test_vis_reference.cpp` (item by item); `generate_calfem_python_vis_fields.py` and
   `test_vis_fields_reference.cpp` for the field functions (filled contours compared by level, colour and area
-  per level interval, contour lines by colour and length, since matplotlib merges regions); Qt tests are in `tests/qt/` (`minimal` platform; vcpkg has no `offscreen` plugin on Windows; `calfem_deploy_qt_plugins()` copies the plugins next to executables).
+  per level interval, contour lines by colour and length, since matplotlib merges regions); Qt tests are in `tests/qt/` (`minimal` platform; vcpkg has no `offscreen` plugin on Windows; `calfem_deploy_qt_plugins()` copies the plugins next to executables, or links the minimal plugin in when Qt is static, as with vcpkg on macOS).
 - Every public header must compile on its own (checked by the `calfem_header_check` target in `tests/`).
 - `src/calfem/detail/element_utils.h` shared element helpers (evaluation points, 2D transformations,
   axial/bending section results); `detail/gauss.h` Gauss rules (CALFEM constants and point order);

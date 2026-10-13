@@ -1,5 +1,5 @@
 # calfem::vis_qt - Qt backend for calfem::vis (interactive figure windows, PNG/PDF output).
-# Qt is LGPL licensed; vcpkg builds it as shared libraries on Windows.
+# Qt is LGPL licensed; vcpkg builds it as shared libraries on Windows and as static libraries on macOS/Linux.
 
 add_library(calfem_vis_qt
     ${PROJECT_SOURCE_DIR}/include/calfem/vis_qt.h
@@ -29,8 +29,16 @@ endif()
 # calfem_deploy_qt_plugins(<target>)
 # Copies the Qt platform (and style) plugins next to an executable after it is built, so it finds them when run
 # from bin/<config> (Qt looks in <exe dir>/platforms). Only needed on Windows; elsewhere Qt finds its plugins
-# through its installation prefix.
+# through its installation prefix. With a static Qt (vcpkg on macOS and Linux) only the default platform plugin is
+# linked in, so the minimal plugin used by the tests is imported instead.
 function(calfem_deploy_qt_plugins target)
+    get_target_property(qt_type Qt6::Core TYPE)
+    if(qt_type STREQUAL "STATIC_LIBRARY")
+        if(TARGET Qt6::QMinimalIntegrationPlugin)
+            qt_import_plugins(${target} INCLUDE Qt6::QMinimalIntegrationPlugin)
+        endif()
+        return()
+    endif()
     if(NOT WIN32)
         return()
     endif()

@@ -36,7 +36,10 @@ All element and solver routines of calfem-python's `core.py` are available.
 
 ## Building
 
-The presets use Ninja and locate vcpkg through the `VCPKG_ROOT` environment variable. All presets share a
+The presets use Ninja. vcpkg is located automatically (`cmake/vcpkg_detect.cmake`): from the `VCPKG_ROOT`
+environment variable, the `vcpkg` executable on `PATH`, `VCPKG_INSTALLATION_ROOT`, or a common location such as
+`~/vcpkg` or `C:/vcpkg`. An explicit `-DCMAKE_TOOLCHAIN_FILE=...` takes precedence, and
+`-DCALFEM_VCPKG_DETECT=OFF` disables the search. All presets share a
 single vcpkg tree, `vcpkg_installed/`, so the dependencies are installed once for all build trees. Since vcpkg
 removes packages a configuration does not request, every preset requests the same manifest features (including
 `qt`); the Qt presets differ only in enabling `CALFEM_WITH_QT`.
@@ -62,7 +65,7 @@ ctest --preset vs-release           # or vs-debug
 Open `build-vs/calfem.slnx` in Visual Studio to build and debug from the IDE. To use another Visual Studio
 version, override the generator in a `CMakeUserPresets.json`, e.g. `"generator": "Visual Studio 17 2022"`.
 
-To use a different vcpkg installation than the one in `VCPKG_ROOT`, create a `CMakeUserPresets.json` (ignored by
+To use a different vcpkg installation than the one found automatically, create a `CMakeUserPresets.json` (ignored by
 git):
 
 ```json

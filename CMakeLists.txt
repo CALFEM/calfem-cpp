@@ -4,6 +4,8 @@ if(POLICY CMP0144)
     cmake_policy(SET CMP0144 NEW) # GMSH_ROOT is used by find_package(Gmsh)
 endif()
 
+include(${CMAKE_CURRENT_LIST_DIR}/cmake/vcpkg_detect.cmake)
+
 project(calfem VERSION 0.1.0 DESCRIPTION "CALFEM finite element library for C++" LANGUAGES CXX)
 
 # Tests and install rules default to ON only when calfem is the top-level project, so that
